@@ -1,54 +1,43 @@
 #### 该应用正在重构，你可以正常使用，但我们已停止接受来自 *alpha2.1.13* 版本的 issue。
+#### 实现方式正在开发，您可以自行设计客户端使用。
 #### INTER#LS 邀请你参与完善本条目，该条目正在进行中。
 
-# 重构详情
+# ClassCaller
 
-本条目摘自 泠弦 @lingxianww 向 IslandCaller @HUSX100 提交的 issue。
+ClassCaller 是一个基于 ClassIsland 插件 IslandCaller 的轻量级点名服务提供端，用于在课堂上快速点名。
 
-issue 主页 https://github.com/HUSX100/IslandCaller/issues/17
+## 特性
 
-# 检查清单
+- **统一管理：** 学校创建可配置的全校服务器即可统一管理全校信息。
+- **简单配置：** Windows电脑下载ClassIsland - IslandCaller 即可连接使用。
+- **可配置性：** 可根据JSON返回结果自行设计客户端。
 
-已将本应用更新到最新测试版 
-，并看过最新提交，确认功能还没有实现。也已在 Issues中检索，确认想要的功能未被提交过。
-已知晓由于开发者时间精力有限，加上已经积压了大量的功能请求，提交的功能请求可能需要比较久的时间才能实现。
+## 使用方法（IslandCaller实现）
 
-# 背景与动机
+1. **下载插件：** 从 ClassIsland 插件商店下载 `IslandCaller` 插件。
 
-发现islandcaller的默认抽取方式会出现顺序读表的问题（已找到相关issue #10 ）。
+2. **开启悬浮窗：**
+   在插件设置中启用悬浮窗，或者自行创建一个指向 `classisland://plugins/IslandCaller/Run` 的快捷方式。
 
-已存在一个调试完全的抽取机制算法，并运行在本地端口，我希望islandcaller能够开放通过http的GET方法获取抽取结果。具体实现方式如下。
+3. **创建班级名单：**
+   在记事本中输入你的班级名单，每行一个学生姓名+空格+0，并保存为std.namesbook并保存到程序目录。
 
-## 想要实现或优化的功能
+4. **运行快捷方式进行点名：**
+   点击桌面上的悬浮窗，打开 `IslandCaller` 插件并进行点名。
 
-### http 服务端
+## 注意事项
 
-服务端通过 json 返回，具体格式如下。
+- 确保 ClassIsland 本体的“注册 Url 协议”设置已开启，否则无法通过快捷方式启动插件。
+- 确保 ClassIsland 与学校服务器连接通畅。
 
+## 致谢
 
-{
-    'code': 200,    #可通过code判断服务端状态
-    'msg': 'success',
-    'data': {
-        'name': [张三]     #此处可以实现多个姓名的同时选取，故采用列表形式。
-        #可能存在其他信息，您可以自行定义。
-    }
-}
+本项目依赖于以下项目：
+- ClassIsland
+- IslandCaller
 
-该格式为我提出的建议格式，您可以根据需求自定修改。
+---
 
-### caller 客户端
+如果你在使用过程中遇到任何问题，欢迎提交 [Issue](https://github.com/Teak75035/ClassCaller-Server-Python/issues)。
 
-客户端添加通过 http 获取选项，并要求填入地址字段。
-例如：
-
-{'byhttp': True, 'url': '127.0.0.1:5000/random?pcs=1'}
-
-当调用方法时，如果 byhttp 设定为 True ，则通过 http 进行 GET ，并解析 JSON 获取返回的姓名并返回。
-
-### 服务端开发
-关于服务端开发，我已完成一个服务端样本，采用 Python 进行模拟。我将源码上传至仓库，您可以根据需要参考。
-
-# 最后一步
-上述的描述已经足以详细，开发人员已理解功能。如果 issue 没有按照上述的要求填写，可能会被无条件关闭。
-
+---
