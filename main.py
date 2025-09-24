@@ -1,0 +1,21 @@
+import subprocess
+import os
+
+#本程序负责同时唤起hower和server，使两段程序同时运行
+
+def run_scripts():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    scripts = ['hower.py', 'server2.py']
+    processes = []
+    for script in scripts:
+        script_path = os.path.join(base_dir, script)
+        if os.path.exists(script_path):
+            p = subprocess.Popen(['python', script_path])
+            processes.append(p)
+        else:
+            print(f"Script not found: {script_path}")
+    for p in processes:
+        p.wait()
+
+if __name__ == "__main__":
+    run_scripts()
