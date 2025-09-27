@@ -1,3 +1,4 @@
+# ---- 导入必要的库 ----
 import numpy as np
 import requests
 import random as r
@@ -9,17 +10,17 @@ from matplotlib import pyplot as plt
 version = "3.1.21-beta_flowerme"
 
 # ---- 参数配置 ----
-base_punish = 0.1
-punish_growth = 0.02
-alpha = 0.6
-cooldown_rounds = 20
+base_punish = 0.1  # 基础惩罚值
+punish_growth = 0.02  # 惩罚增长率
+alpha = 0.6  # 权重计算的指数参数
+cooldown_rounds = 20  # 冷却回合数
 
 # ---- 全局变量 ----
-o_name = []
-o_time = []
-cooldown = []
-id = 0
-final_name = ''
+o_name = []  # 成员姓名列表
+o_time = []  # 成员出场次数列表
+cooldown = []  # 冷却状态列表
+id = 0  # 当前抽选的成员 ID
+final_name = ''  # 最终抽选的成员姓名
 
 # --- 定义路由信息 ---
 app = Flask(__name__)
@@ -27,7 +28,16 @@ app = Flask(__name__)
 # ---- 函数部分 ----
 def notification(title: str, title_duration: int, title_voice: str,
                  content: str, content_duration: int, content_voice: str):
-    url = "http://127.0.0.1:5002/api/notify" ########请确保与Island插件地址相符！
+    """
+    发送通知到 Island 插件。
+    :param title: 通知标题
+    :param title_duration: 标题显示时长（秒）
+    :param title_voice: 标题语音内容
+    :param content: 通知内容
+    :param content_duration: 内容显示时长（秒）
+    :param content_voice: 内容语音内容
+    """
+    url = "http://127.0.0.1:5002/api/notify"  # 请确保与 Island 插件地址相符
     data = {
         "title": title,
         "title_duration": title_duration,
@@ -42,6 +52,9 @@ def notification(title: str, title_duration: int, title_voice: str,
     print("[Server2] Response Body:", response.text)
 
 def read_file():
+    """
+    从文件中读取成员姓名和出场次数，初始化全局变量 o_name、o_time 和 cooldown。
+    """
     global o_name, o_time, cooldown
     o_name.clear()
     o_time.clear()
@@ -62,6 +75,12 @@ def read_file():
                     print(f"[Server2] namesbook 中出现格式错误的 time ，我们已跳过 Line.{count}")
 
 def weighted_draw(exclude_ids=None, idx=None):
+    """
+    根据成员的出场次数和冷却状态，进行加权抽选。
+    :param exclude_ids: 排除的成员 ID 列表
+    :param idx: 当前请求的成员 ID（用于冷却时间的计算）
+    :return: 如果是冷却中的成员，返回惩罚分数；否则返回 None
+    """
     global id, final_name, cooldown
 
     if exclude_ids is None:
@@ -107,6 +126,9 @@ def weighted_draw(exclude_ids=None, idx=None):
         return test_score * punish
 
 def pushback():
+    """
+    将当前抽选的成员的出场次数 +1，并更新冷却状态。
+    """
     global o_time, id, o_name, cooldown
     if id is None or not (0 <= id < len(o_time)):
         print(f"[Server2] ⚠️ 无效 ID，回溯失败。结果可能受到影响。")
@@ -124,6 +146,9 @@ def pushback():
         print(f"[Server2] ❌ 写入文件失败：{e}")
 
 def reset():
+    """
+    重置所有成员的出场次数和冷却状态。
+    """
     read_file()
     global o_name, o_time, cooldown
     for i in range(len(o_time)):
@@ -135,18 +160,28 @@ def reset():
     print("[Server2] ✅ namesbook 已重置为初始状态。")
 
 def cooldown_tick():
+    """
+    冷却时间递减，已冷却的成员将冷却时间减 1。
+    """
     global cooldown
     for i in range(len(cooldown)):
         if cooldown[i] > 0:
             cooldown[i] -= 1
 
 def check_connection():
+    """
+    检查与 Island 插件的连接，并发送启动成功的通知。
+    """
     notification("IslandCaller NEXT 启动成功", 3, "", "ICNEXT v"+str(version)+" 已成功连接到您的ClassIsland。", 5, "")
 
 '''路由部分↓'''
 
 @app.route('/rna', methods=['GET'])
 def rna():
+    """
+    根据请求参数 pcs 和 seed，进行成员抽选。
+    :return: JSON格式的抽选结果
+    """
     global cooldown
 
     pcs = int(request.args.get('pcs', 1))
@@ -159,10 +194,11 @@ def rna():
     r.seed(seed)
     np.random.seed(seed)
 
-    ok_name = []
-    used_ids = set()
+    ok_name = []  # 存储本次抽选成功的成员
+    used_ids = set()  # 存储已抽选的成员 ID，避免重复抽选
 
     while len(ok_name) < pcs:
+        # 获取可用的成员 ID 列表
         available_ids = [i for i in range(len(o_name)) if cooldown[i] == 0 and i not in used_ids]
 
         if not available_ids:
@@ -174,12 +210,13 @@ def rna():
                 print("[Server2] ⚠️ 无法满足 pcs 数量，名单已耗尽。")
                 break
 
+        # 加权抽选成员
         weighted_draw(exclude_ids=used_ids)
         if final_name and id not in used_ids:
             ok_name.append(final_name)
             used_ids.add(id)
-            pushback()
-        cooldown_tick()
+            pushback()  # 更新抽选成员的出场次数
+        cooldown_tick()  # 更新冷却状态
 
     return jsonify({
         'code': '200',
@@ -193,6 +230,10 @@ def rna():
 
 @app.route('/reset/all', methods=['GET'])
 def reset_route():
+    """
+    重置所有成员的出场次数和冷却状态。
+    :return: JSON格式的操作结果
+    """
     
     reset()
     return jsonify({
@@ -203,6 +244,10 @@ def reset_route():
 
 @app.route('/see', methods=['GET'])
 def see():
+    """
+    查看成员的出场次数和权重信息。
+    :return: JSON格式的成员信息
+    """
     read_file()
     num = int(request.args.get('id', 0)) - 1
     if num == -1:
@@ -230,6 +275,10 @@ def see():
 
 @app.route('/last', methods=['GET'])
 def last():
+    """
+    获取出场次数最少的成员及其出场次数。
+    :return: JSON格式的成员信息
+    """
     max = 10**10
     name = ''
     with open('std.namesbook', 'r', encoding='utf-8') as f:
@@ -252,6 +301,10 @@ def last():
 
 @app.route('/status', methods=['GET'])
 def status():
+    """
+    获取当前服务的状态信息，包括版权信息、版本号和作者信息。
+    :return: JSON格式的状态信息
+    """
     return jsonify({
         'code': '200',
         'status': 'success',
@@ -264,6 +317,10 @@ def status():
 
 @app.route('/msg', methods=['GET'])           
 def msg():
+    """
+    接收前端或调用方的消息提醒请求，参数包括标题、内容及其持续时间等。
+    :return: 返回 empty.html 页面
+    """
     title = str(request.args.get('title', '通知'))
     title_duration = int(request.args.get('title_duration', 3))
     title_voice = str(request.args.get('title_voice', ''))
@@ -277,6 +334,10 @@ def msg():
 
 @app.route('/pic', methods=['GET'])
 def pic():
+    """
+    生成并返回成员出场次数的统计图。
+    :return: 返回生成的统计图像文件
+    """
     read_file()
     plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']  # 设置字体为微软雅黑
     plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
@@ -298,6 +359,10 @@ def pic():
 
 @app.route('/rnafromweb', methods=['GET'])
 def rnafromweb():
+    """
+    从网页请求中获取抽选参数 pcs 和 seed，进行成员抽选，并发送通知。
+    :return: None
+    """
     global cooldown
 
     pcs = int(request.args.get('pcs', 1))
@@ -338,14 +403,14 @@ def rnafromweb():
     
 @app.route('/msghelp', methods=['GET'])
 def msghelp():
-    return jsonify(
-    {
-    "title": "提醒标题",
-    "title_duration": "这是提醒标题的持续时间",
-    "title_voice": "这是语音播放的提醒标题",
-    "content": "提醒内容",
-    "content_duration": "这是提醒内容的持续时间",
-    "content_voice": "这是语音播放的提醒内容"
+    # 返回消息提醒参数的说明，供前端或调用方参考
+    return jsonify({
+        "title": "提醒标题",  # 通知栏标题
+        "title_duration": "这是提醒标题的持续时间",  # 标题显示时长（秒）
+        "title_voice": "这是语音播放的提醒标题",  # 标题语音内容
+        "content": "提醒内容",  # 通知栏内容
+        "content_duration": "这是提醒内容的持续时间",  # 内容显示时长（秒）
+        "content_voice": "这是语音播放的提醒内容"  # 内容语音内容
     })
 
 if __name__ == '__main__':
@@ -356,4 +421,4 @@ if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001)
 
 ########如果端口冲突，请同时修改本程序和hower.py！（默认5001）########
-    
+
