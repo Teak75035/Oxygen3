@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IslandCaller NEXT - 随机进化 | WEB仪表盘</title>
+    <style>
+        /* 全局样式 */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f6f8fa;
+            color: #24292e;
+        }
+
+        /* 顶部导航栏 */
+        .navbar {
+            background-color: #24292e;
+            color: #ffffff;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar h1 {
+            font-size: 20px;
+            margin: 0;
+        }
+
+        .navbar a {
+            color: #ffffff;
+            text-decoration: none;
+            margin-left: 15px;
+        }
+
+        .navbar a:hover {
+            text-decoration: underline;
+        }
+
+        /* 仪表盘容器 */
+        .dashboard {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        /* 卡片样式 */
+        .card {
+            background-color: #ffffff;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(27, 31, 35, 0.12);
+            padding: 20px;
+            flex: 1 1 calc(33.333% - 40px);
+            min-width: 250px;
+        }
+
+        .card h2 {
+            font-size: 18px;
+            margin: 0 0 10px;
+        }
+
+        .card p {
+            font-size: 14px;
+            color: #586069;
+        }
+
+        .card button {
+            background-color: #2ea44f;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .card button:hover {
+            background-color: #22863a;
+        }
+
+        /* 页脚 */
+        .footer {
+            text-align: center;
+            padding: 10px;
+            background-color: #f6f8fa;
+            color: #586069;
+            border-top: 1px solid #e1e4e8;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="navbar">
+        <h1>IslandCaller NEXT</h1>
+        <div>
+            <a href="ol.html">主页</a>
+            <a href="settings.html">设置</a>
+            <a href="https://github.com/Teak75035/IslandCallerNEXT" target="_blank">项目主页</a>
+        </div>
+    </div>
+
+    <!-- 仪表盘内容 -->
+    <div class="dashboard">
+        <div class="card">
+            <h2>随机统计</h2>
+            <p>查看您的随机统计数据，包括随机抽取、多次抽取。</p>
+            <button onclick="window.location.href='http://127.0.0.1:5001/pic';">查看详情</button>
+        </div>
+        <div class="card">
+            <h2>多次抽取</h2>
+            <p>批量抽取随机名单，适用于快速不重复的情况。</p>
+            <!-- 添加步进器 -->
+            <div style="margin: 10px 0;">
+                <label for="stepper">抽取次数：</label>
+                <input id="stepper" type="number" min="1" max="100" value="1" style="width: 60px; padding: 5px; border: 1px solid #e1e4e8; border-radius: 4px;">
+            </div>
+            <button onclick="sendToClassIsland()">发送到ClassIsland</button>
+        </div>
+        <div class="card">
+            <h2>灵动推送</h2>
+            <p>填写以下信息并点击确定按钮来向您链接的ClassIsland发送通知。</p>
+            <!-- 输入框组 -->
+            <div style="margin: 10px 0;">
+                <label for="input1">通知标题：</label>
+                <input id="input1" type="text" placeholder="远程推送提醒" style="width: 100%; padding: 5px; margin-bottom: 10px; border: 1px solid #e1e4e8; border-radius: 4px;">
+                
+                <label for="input2">标题持续时间：</label>
+                <input id="input2" type="text" placeholder="3" style="width: 100%; padding: 5px; margin-bottom: 10px; border: 1px solid #e1e4e8; border-radius: 4px;">
+                
+                <label for="input3">标题语音内容：</label>
+                <input id="input3" type="text" placeholder="默认标题语音" style="width: 100%; padding: 5px; margin-bottom: 10px; border: 1px solid #e1e4e8; border-radius: 4px;">
+                
+                <label for="input4">通知内容：</label>
+                <input id="input4" type="text" placeholder="默认提醒内容" style="width: 100%; padding: 5px; margin-bottom: 10px; border: 1px solid #e1e4e8; border-radius: 4px;">
+                
+                <label for="input5">内容持续时间：</label>
+                <input id="input5" type="text" placeholder="0" style="width: 100%; padding: 5px; margin-bottom: 10px; border: 1px solid #e1e4e8; border-radius: 4px;">
+                
+                <label for="input6">内容语音内容：</label>
+                <input id="input6" type="text" placeholder="默认提醒语音" style="width: 100%; padding: 5px; margin-bottom: 10px; border: 1px solid #e1e4e8; border-radius: 4px;">
+            </div>
+            <button onclick="submitInputs()">确定</button>
+        </div>
+        
+        <script>
+            function submitInputs() {
+                // 获取输入框的值，如果为空则使用默认值
+                const input1 = document.getElementById('input1').value || '远程推送提醒'; // title
+                const input2 = document.getElementById('input2').value || '3'; // title_duration
+                const input3 = document.getElementById('input3').value || '。'; // title_voice
+                const input4 = document.getElementById('input4').value || ' '; // content
+                const input5 = document.getElementById('input5').value || '0'; // content_duration
+                const input6 = document.getElementById('input6').value || '。'; // content_voice
+        
+                // 构造跳转链接
+                const url = `http://127.0.0.1:5001/msg?title=${encodeURIComponent(input1)}&title_duration=${encodeURIComponent(input2)}&title_voice=${encodeURIComponent(input3)}&content=${encodeURIComponent(input4)}&content_duration=${encodeURIComponent(input5)}&content_voice=${encodeURIComponent(input6)}`;
+        
+                // 打印 URL 到控制台（用于调试）
+                console.log('访问 URL:', url);
+        
+                // 在后台标签页中打开链接
+                window.open(url, '_blank');
+            }
+        </script>
+    </div>
+
+    <!-- 页脚 -->
+    <div class="footer">
+        INTER#LS - IslandCaller NEXT
+    </div>
+
+    <script>
+        function sendToClassIsland() {
+            // 获取步进器的值
+            const stepperValue = document.getElementById('stepper').value;
+            // 构造跳转链接
+            const url = `http://127.0.0.1:5001/rnafromweb?pcs=${stepperValue}`;
+            // 在后台标签页中打开链接
+            window.open(url, '_blank');
+        }
+    </script>
+    </body>
+</html>
