@@ -3,12 +3,13 @@ import numpy as np
 import requests
 import random as r
 from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
 import os
 from matplotlib import pyplot as plt
-import base64
+import hashlib
 
 # ---- 版本信息 ----
-version = "3.1.21-beta_flowerme"
+version = "3.1.25-beta_flowerme"
 
 # ---- 参数配置 ----
 base_punish = 0.1  # 基础惩罚值
@@ -25,6 +26,15 @@ final_name = ''  # 最终抽选的成员姓名
 
 # --- 定义路由信息 ---
 app = Flask(__name__)
+CORS(app)  # 自动添加 CORS 头
+@app.before_request
+def handle_options():
+    if request.method == 'OPTIONS':
+        response = app.make_response('')
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        return response
 
 # ---- 函数部分 ----
 def notification(title: str, title_duration: int, title_voice: str,
@@ -247,16 +257,19 @@ def reset_namesbook():
     :return: JSON格式的操作结果
     """
     key_shadow = str(request.args.get('key', '0'))
-    key_shadow = base64.b64encode(key_shadow.encode('utf-8')).decode('utf-8')
-    if key_shadow != 'bGluZ3hpYW53dw==':
-        return jsonify({'error': '密钥错误，无法执行重置操作。'}), 403
+    # 使用 SHA256 和 MD5 组合加密
+    md5_hash = hashlib.md5(key_shadow.encode('utf-8')).hexdigest()
+
+    if md5_hash != '71b72a4634334ae3b09c14d6761d288b':  # 密码 lingxianww 的 SHA256+MD5 哈希值
+        return jsonify({'403': '', 'error': '密钥错误，无法执行重置操作。'}), 403
     else:
         reset()
         return jsonify({
+            '200': '',
             'code': '200',
             'status': 'success',
             'message': 'namesbook 已重置为初始状态。'
-            })
+        }), 200
 
 @app.route('/check', methods=['GET'])
 def check():

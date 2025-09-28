@@ -190,19 +190,41 @@
                 window.open(url, '_blank');
             }
 
-            function resetNamesbook() {
+            function sha256(message) {
+                // 使用 SubtleCrypto API 进行 SHA256 加密
+                const encoder = new TextEncoder();
+                const data = encoder.encode(message);
+                return crypto.subtle.digest('SHA-256', data).then(hash => {
+                    return Array.from(new Uint8Array(hash))
+                        .map(b => b.toString(16).padStart(2, '0'))
+                        .join('');
+                });
+            }
+
+            async function resetNamesbook() {
                 // 获取密码框的值
                 const passkey = document.getElementById('passkey1').value;
 
+                // 对 key 进行 SHA256 加密
+                const hashedKey = await sha256(passkey);
+
                 // 构造请求 URL
-                const url = `${getBaseUrl()}/resetnamesbook?key=${encodeURIComponent(passkey)}`;
+                const url = `${getBaseUrl()}/resetnamesbook?key=${encodeURIComponent(hashedKey)}`;
 
                 // 发送 GET 请求
                 fetch(url, { method: 'GET' })
                     .then(response => {
-                        if (response.status === 403) {
-                            alert('密钥错误，请重试！');
-                        } else if (response.status === 200) {
+                        if (response.ok) {
+                            return response.json(); // 如果响应成功，解析为 JSON
+                        } else {
+                            throw new Error(`HTTP 状态码: ${response.status}`); // 抛出错误以捕获非 2xx 响应
+                        }
+                    })
+                    .then(data => {
+                        console.log('服务器返回:', data); // 打印返回内容用于调试
+                        if (data["403"] !== undefined) {
+                            alert(data["error"] || '密钥错误，请重试！');
+                        } else if (data["200"] !== undefined) {
                             alert('操作成功！');
                             document.getElementById('passkey1').value = ''; // 清空密码框内容
                         } else {
@@ -211,7 +233,7 @@
                     })
                     .catch(error => {
                         console.error('请求失败:', error);
-                        alert('已尝试放出请求，请通过随机统计检查数据是否被清空。');
+                        alert('请求失败，请检查密钥是否正确');
                     });
             }
 
