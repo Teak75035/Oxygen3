@@ -5,6 +5,7 @@ import random as r
 from flask import Flask, request, jsonify, send_file
 import os
 from matplotlib import pyplot as plt
+import base64
 
 # ---- 版本信息 ----
 version = "3.1.21-beta_flowerme"
@@ -16,8 +17,8 @@ alpha = 0.6  # 权重计算的指数参数
 cooldown_rounds = 20  # 冷却回合数
 
 # ---- 全局变量 ----
-o_name = []  # 成员姓名列表
-o_time = []  # 成员出场次数列表
+name_in_file = []  # 成员姓名列表
+time_in_file = []  # 成员出场次数列表
 cooldown = []  # 冷却状态列表
 id = 0  # 当前抽选的成员 ID
 final_name = ''  # 最终抽选的成员姓名
@@ -53,11 +54,11 @@ def notification(title: str, title_duration: int, title_voice: str,
 
 def read_file():
     """
-    从文件中读取成员姓名和出场次数，初始化全局变量 o_name、o_time 和 cooldown。
+    从文件中读取成员姓名和出场次数，初始化全局变量 name_in_file、time_in_file 和 cooldown。
     """
-    global o_name, o_time, cooldown
-    o_name.clear()
-    o_time.clear()
+    global name_in_file, time_in_file, cooldown
+    name_in_file.clear()
+    time_in_file.clear()
     cooldown.clear()
     if not os.path.exists('std.namesbook'):
         print("[Server2] ⚠️ 文件 std.namesbook 不存在。")
@@ -68,8 +69,8 @@ def read_file():
             if len(parts) == 2:
                 name, count = parts[0], parts[1]
                 try:
-                    o_name.append(name)
-                    o_time.append(int(count))
+                    name_in_file.append(name)
+                    time_in_file.append(int(count))
                     cooldown.append(0)
                 except ValueError:
                     print(f"[Server2] namesbook 中出现格式错误的 time ，我们已跳过 Line.{count}")
@@ -83,30 +84,33 @@ def weighted_draw(exclude_ids=None, idx=None):
     """
     global id, final_name, cooldown
 
-    if exclude_ids is None:
-        exclude_ids = set()
+    exclude_ids = exclude_ids or set()
 
-    if not o_time or not o_name:
+    if not time_in_file or not name_in_file:
         print("[Server2] ⚠️ namesbook 为空，请检查文件。")
         return
 
-    diff = max(o_time) - min(o_time)
+    # 计算惩罚参数和分数上限
+    diff = max(time_in_file) - min(time_in_file)
     punish = base_punish + punish_growth * diff
-    limit = max(o_time) + 1
+    limit = max(time_in_file) + 1
 
+    # 计算每个成员的分数
     scores = [
         (limit - count) ** alpha if cooldown[i] == 0 and i not in exclude_ids else 0
-        for i, count in enumerate(o_time)
+        for i, count in enumerate(time_in_file)
     ]
 
-    if sum(scores) == 0:
+    # 如果所有分数为 0，重置冷却状态并重新计算分数
+    if not any(scores):
         print("[Server2] ⚠️ 所有成员都处于冷却中或已被排除，重置冷却状态。")
         cooldown = [0] * len(cooldown)
         scores = [
             (limit - count) ** alpha if i not in exclude_ids else 0
-            for i, count in enumerate(o_time)
+            for i, count in enumerate(time_in_file)
         ]
 
+    # 计算权重
     weights = np.exp(np.array(scores) * punish)
     weights_sum = weights.sum()
 
@@ -115,33 +119,34 @@ def weighted_draw(exclude_ids=None, idx=None):
         final_name = ''
         return
 
+    # 归一化权重并进行抽选
     weights /= weights_sum
-    id = np.random.choice(range(len(o_name)), p=weights)
-    final_name = o_name[id]
+    id = np.random.choice(range(len(name_in_file)), p=weights)
+    final_name = name_in_file[id]
 
+    # 如果提供了 idx 参数，计算并返回惩罚分数
     if idx is not None:
         if cooldown[idx - 1] > 0:
             return 0
-        test_score = (limit - o_time[idx - 1]) ** alpha
-        return test_score * punish
+        return (limit - time_in_file[idx - 1]) ** alpha * punish
 
 def pushback():
     """
     将当前抽选的成员的出场次数 +1，并更新冷却状态。
     """
-    global o_time, id, o_name, cooldown
-    if id is None or not (0 <= id < len(o_time)):
+    global time_in_file, id, name_in_file, cooldown
+    if id is None or not (0 <= id < len(time_in_file)):
         print(f"[Server2] ⚠️ 无效 ID，回溯失败。结果可能受到影响。")
         return
 
-    o_time[id] += 1
+    time_in_file[id] += 1
     cooldown[id] = cooldown_rounds
 
     try:
         with open('std.namesbook', 'w', encoding='utf-8') as f:
-            for name, count in zip(o_name, o_time):
+            for name, count in zip(name_in_file, time_in_file):
                 f.write(f"{name} {count}\n")
-        print(f"[Server2] ✅ 回溯：{o_name[id]} 的出场次数 +1，并已写回文件。")
+        print(f"[Server2] ✅ 回溯：{name_in_file[id]} 的出场次数 +1，并已写回文件。")
     except Exception as e:
         print(f"[Server2] ❌ 写入文件失败：{e}")
 
@@ -150,13 +155,13 @@ def reset():
     重置所有成员的出场次数和冷却状态。
     """
     read_file()
-    global o_name, o_time, cooldown
-    for i in range(len(o_time)):
-        o_time[i] = 0
+    global name_in_file, time_in_file, cooldown
+    for i in range(len(time_in_file)):
+        time_in_file[i] = 0
         cooldown[i] = 0
     with open('std.namesbook', 'w', encoding='utf-8') as f:
-        for i in range(len(o_name)):
-            f.write(f"{o_name[i]} 0\n")
+        for i in range(len(name_in_file)):
+            f.write(f"{name_in_file[i]} 0\n")
     print("[Server2] ✅ namesbook 已重置为初始状态。")
 
 def cooldown_tick():
@@ -164,17 +169,24 @@ def cooldown_tick():
     冷却时间递减，已冷却的成员将冷却时间减 1。
     """
     global cooldown
-    for i in range(len(cooldown)):
-        if cooldown[i] > 0:
-            cooldown[i] -= 1
+    # 使用列表推导式优化冷却状态更新逻辑
+    cooldown = [max(0, c - 1) for c in cooldown]
 
 def check_connection():
     """
-    检查与 Island 插件的连接，并发送启动成功的通知。
+    向 ClassIsland 发送启动成功的通知，以测试程序与 Island 插件的连接状态。
     """
     notification("IslandCaller NEXT 启动成功", 3, "", "ICNEXT v"+str(version)+" 已成功连接到您的ClassIsland。", 5, "")
 
-'''路由部分↓'''
+def welcome():
+    """
+    发送欢迎使用的通知。
+    """
+    print("[Server2] IslandCaller NEXT - 随机进化")
+    print("[Server2] 欢迎使用ICNEXT！\n[Server2] 请确保ICNEXT与ClassIsland正在以管理员身份运行，更多帮助请自行查阅程序源码。")
+    print(f"[Server2] 版本号 {version} 源码作者 Github @Teak75035")
+
+# ---- 路由部分 ----
 
 @app.route('/rna', methods=['GET'])
 def rna():
@@ -199,12 +211,12 @@ def rna():
 
     while len(ok_name) < pcs:
         # 获取可用的成员 ID 列表
-        available_ids = [i for i in range(len(o_name)) if cooldown[i] == 0 and i not in used_ids]
+        available_ids = [i for i in range(len(name_in_file)) if cooldown[i] == 0 and i not in used_ids]
 
         if not available_ids:
             print("[Server2] 🌀 无可用抽选对象，重置冷却状态。")
             cooldown = [0] * len(cooldown)
-            available_ids = [i for i in range(len(o_name)) if i not in used_ids]
+            available_ids = [i for i in range(len(name_in_file)) if i not in used_ids]
 
             if not available_ids:
                 print("[Server2] ⚠️ 无法满足 pcs 数量，名单已耗尽。")
@@ -228,22 +240,26 @@ def rna():
         }
     })
 
-@app.route('/reset/all', methods=['GET'])
-def reset_route():
+@app.route('/resetnamesbook', methods=['GET'])
+def reset_namesbook():
     """
     重置所有成员的出场次数和冷却状态。
     :return: JSON格式的操作结果
     """
-    
-    reset()
-    return jsonify({
-        'code': '200',
-        'status': 'success',
-        'message': 'namesbook 已重置为初始状态。'
-        })
+    key_shadow = str(request.args.get('key', '0'))
+    key_shadow = base64.b64encode(key_shadow.encode('utf-8')).decode('utf-8')
+    if key_shadow != 'bGluZ3hpYW53dw==':
+        return jsonify({'error': '密钥错误，无法执行重置操作。'}), 403
+    else:
+        reset()
+        return jsonify({
+            'code': '200',
+            'status': 'success',
+            'message': 'namesbook 已重置为初始状态。'
+            })
 
-@app.route('/see', methods=['GET'])
-def see():
+@app.route('/check', methods=['GET'])
+def check():
     """
     查看成员的出场次数和权重信息。
     :return: JSON格式的成员信息
@@ -255,11 +271,11 @@ def see():
             'code': '200',
             'status': 'success',
             'data': {
-                'names': o_name,
-                'times': o_time,
+                'names': name_in_file,
+                'times': time_in_file,
             }
         })
-    elif num < -1 or num >= len(o_name):
+    elif num < -1 or num >= len(name_in_file):
         return jsonify({'error': 'id 参数无效'}), 400
     else:
         weighted_draw()
@@ -267,14 +283,14 @@ def see():
             'code': '200',
             'status': 'success',
             'data': {
-                'name': o_name[num],
-                'time': o_time[num],
+                'name': name_in_file[num],
+                'time': time_in_file[num],
                 'weight': weighted_draw(num + 1)
             }
         })
 
-@app.route('/last', methods=['GET'])
-def last():
+@app.route('/less', methods=['GET'])
+def less():
     """
     获取出场次数最少的成员及其出场次数。
     :return: JSON格式的成员信息
@@ -332,8 +348,8 @@ def msg():
     # 返回 empty.html 页面
     return send_file('empty.html')
 
-@app.route('/pic', methods=['GET'])
-def pic():
+@app.route('/chart', methods=['GET'])
+def chart():
     """
     生成并返回成员出场次数的统计图。
     :return: 返回生成的统计图像文件
@@ -342,7 +358,7 @@ def pic():
     plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']  # 设置字体为微软雅黑
     plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
     plt.figure(figsize=(10, 6))
-    plt.bar(o_name, o_time, color='skyblue')
+    plt.bar(name_in_file, time_in_file, color='skyblue')
     plt.xlabel('姓名')
     plt.ylabel('出场次数')
     plt.title('成员出场次数统计')
@@ -358,10 +374,10 @@ def pic():
     }
 
 @app.route('/rnafromweb', methods=['GET'])
-def rnafromweb():
+def rna_from_web():
     """
     从网页请求中获取抽选参数 pcs 和 seed，进行成员抽选，并发送通知。
-    :return: None
+    :return: empty.html 页面
     """
     global cooldown
 
@@ -379,12 +395,12 @@ def rnafromweb():
     used_ids = set()
 
     while len(ok_name) < pcs:
-        available_ids = [i for i in range(len(o_name)) if cooldown[i] == 0 and i not in used_ids]
+        available_ids = [i for i in range(len(name_in_file)) if cooldown[i] == 0 and i not in used_ids]
 
         if not available_ids:
             print("[Server2] 🌀 无可用抽选对象，重置冷却状态。")
             cooldown = [0] * len(cooldown)
-            available_ids = [i for i in range(len(o_name)) if i not in used_ids]
+            available_ids = [i for i in range(len(name_in_file)) if i not in used_ids]
 
             if not available_ids:
                 print("[Server2] ⚠️ 无法满足 pcs 数量，名单已耗尽。")
@@ -399,7 +415,7 @@ def rnafromweb():
 
     notification("批量抽取结果", 2, "", f"{ok_name}", 10, "")
     
-    return None
+    return send_file('empty.html')
     
 @app.route('/msghelp', methods=['GET'])
 def msghelp():
@@ -413,10 +429,10 @@ def msghelp():
         "content_voice": "这是语音播放的提醒内容"  # 内容语音内容
     })
 
+# ---- 程序部分 ----
+
 if __name__ == '__main__':
-    print("[Server2] IslandCaller NEXT - 随机进化")
-    print("[Server2] \n欢迎使用ICNEXT！\n请确保ICNEXT与ClassIsland正在以管理员身份运行，更多帮助请自行查阅程序源码。")
-    print("[Server2] \n源码作者 lingxianww -Github@Teak75035")
+    welcome()
     check_connection()
     app.run(host='0.0.0.0', port=5001)
 

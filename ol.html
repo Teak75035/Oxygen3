@@ -106,9 +106,18 @@
     <!-- 仪表盘内容 -->
     <div class="dashboard">
         <div class="card">
+            <h2>连接到ClassIsland</h2>
+            <p>配置远程设备IP及端口以使用远程服务。</p>
+            <p>你也可以保持默认以使用本地服务。</p>
+            <div style="margin: 10px 0;">
+                <label for="ip">远程设备地址</label>
+                <input id="ip" type="text" placeholder="远程设备的配置地址（IP及端口号）" style="width: 100%; padding: 5px; margin-bottom: 10px; border: 1px solid #e1e4e8; border-radius: 4px;">
+            </div>
+        </div>
+        <div class="card">
             <h2>随机统计</h2>
             <p>查看您的随机统计数据，包括随机抽取、多次抽取。</p>
-            <button onclick="window.location.href='http://127.0.0.1:5001/pic';">查看详情</button>
+            <button onclick="window.location.href=getBaseUrl() + '/chart';">查看详情</button>
         </div>
         <div class="card">
             <h2>多次抽取</h2>
@@ -121,6 +130,15 @@
             <button onclick="sendToClassIsland()">发送到ClassIsland</button>
         </div>
         <div class="card">
+            <h2>重置抽取记录</h2>
+            <p>清除所有抽取记录并重新开始记录，此操作不可逆。</p>
+            <div style="margin: 10px 0;">
+                <strong style="color: #e74c3c;">警告： 此操作将清除所有抽取记录，且不可恢复，请谨慎操作！</strong>
+                <input id="passkey1" type="password" placeholder="要进行该操作，你需要输入密钥以验证操作身份。" style="width: 100%; padding: 5px; margin-top: 5px; border: 1px solid #e1e4e8; border-radius: 4px;">
+            </div>
+            <button style="background-color: #e74c3c; color: #fff; border: none; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-size: 14px;" onclick="resetNamesbook()">确认重置</button>
+        </div>
+                <div class="card">
             <h2>灵动推送</h2>
             <p>填写以下信息并点击确定按钮来向您链接的ClassIsland发送通知。</p>
             <!-- 输入框组 -->
@@ -145,8 +163,14 @@
             </div>
             <button onclick="submitInputs()">确定</button>
         </div>
-        
+
         <script>
+            function getBaseUrl() {
+                // 获取 IP 输入框的值，如果为空则使用默认值
+                const ipInput = document.getElementById('ip').value || '127.0.0.1:5001';
+                return `http://${ipInput}`;
+            }
+
             function submitInputs() {
                 // 获取输入框的值，如果为空则使用默认值
                 const input1 = document.getElementById('input1').value || '远程推送提醒'; // title
@@ -155,13 +179,47 @@
                 const input4 = document.getElementById('input4').value || ' '; // content
                 const input5 = document.getElementById('input5').value || '0'; // content_duration
                 const input6 = document.getElementById('input6').value || '。'; // content_voice
-        
+
                 // 构造跳转链接
-                const url = `http://127.0.0.1:5001/msg?title=${encodeURIComponent(input1)}&title_duration=${encodeURIComponent(input2)}&title_voice=${encodeURIComponent(input3)}&content=${encodeURIComponent(input4)}&content_duration=${encodeURIComponent(input5)}&content_voice=${encodeURIComponent(input6)}`;
-        
+                const url = `${getBaseUrl()}/msg?title=${encodeURIComponent(input1)}&title_duration=${encodeURIComponent(input2)}&title_voice=${encodeURIComponent(input3)}&content=${encodeURIComponent(input4)}&content_duration=${encodeURIComponent(input5)}&content_voice=${encodeURIComponent(input6)}`;
+
                 // 打印 URL 到控制台（用于调试）
                 console.log('访问 URL:', url);
-        
+
+                // 在后台标签页中打开链接
+                window.open(url, '_blank');
+            }
+
+            function resetNamesbook() {
+                // 获取密码框的值
+                const passkey = document.getElementById('passkey1').value;
+
+                // 构造请求 URL
+                const url = `${getBaseUrl()}/resetnamesbook?key=${encodeURIComponent(passkey)}`;
+
+                // 发送 GET 请求
+                fetch(url, { method: 'GET' })
+                    .then(response => {
+                        if (response.status === 403) {
+                            alert('密钥错误，请重试！');
+                        } else if (response.status === 200) {
+                            alert('操作成功！');
+                            document.getElementById('passkey1').value = ''; // 清空密码框内容
+                        } else {
+                            alert('发生未知错误，请稍后再试！');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('请求失败:', error);
+                        alert('已尝试放出请求，请通过随机统计检查数据是否被清空。');
+                    });
+            }
+
+            function sendToClassIsland() {
+                // 获取步进器的值
+                const stepperValue = document.getElementById('stepper').value;
+                // 构造跳转链接
+                const url = `${getBaseUrl()}/rnafromweb?pcs=${stepperValue}`;
                 // 在后台标签页中打开链接
                 window.open(url, '_blank');
             }
@@ -172,16 +230,5 @@
     <div class="footer">
         INTER#LS - IslandCaller NEXT
     </div>
-
-    <script>
-        function sendToClassIsland() {
-            // 获取步进器的值
-            const stepperValue = document.getElementById('stepper').value;
-            // 构造跳转链接
-            const url = `http://127.0.0.1:5001/rnafromweb?pcs=${stepperValue}`;
-            // 在后台标签页中打开链接
-            window.open(url, '_blank');
-        }
-    </script>
     </body>
 </html>
