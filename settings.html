@@ -3,15 +3,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>自动关闭页面</title>
-    <script>
-        // 自动关闭页面
-        window.onload = function() {
-            window.close();
-        };
-    </script>
+    <title>IslandCaller NEXT - 随机进化 | WEB仪表盘</title>
+    <style>
+        /* 全局样式 */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f6f8fa;
+            color: #24292e;
+        }
+
+        /* 顶部导航栏 */
+        .navbar {
+            background-color: #24292e;
+            color: #ffffff;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar h1 {
+            font-size: 20px;
+            margin: 0;
+        }
+
+        .navbar a {
+            color: #ffffff;
+            text-decoration: none;
+            margin-left: 15px;
+        }
+
+        .navbar a:hover {
+            text-decoration: underline;
+        }
+
+        /* 仪表盘容器 */
+        .dashboard {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        /* 卡片样式 */
+        .card {
+            background-color: #ffffff;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(27, 31, 35, 0.12);
+            padding: 20px;
+            flex: 1 1 calc(33.333% - 40px);
+            min-width: 250px;
+        }
+
+        .card h2 {
+            font-size: 18px;
+            margin: 0 0 10px;
+        }
+
+        .card p {
+            font-size: 14px;
+            color: #586069;
+        }
+
+        .card button {
+            background-color: #2ea44f;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .card button:hover {
+            background-color: #22863a;
+        }
+
+        /* 页脚 */
+        .footer {
+            text-align: center;
+            padding: 10px;
+            background-color: #f6f8fa;
+            color: #586069;
+            border-top: 1px solid #e1e4e8;
+        }
+    </style>
 </head>
 <body>
-    <p>页面即将自动关闭...</p>
-</body>
+    <!-- 顶部导航栏 -->
+    <div class="navbar">
+        <h1>IslandCaller NEXT</h1>
+        <div>
+            <a href="ol.html">主页</a>
+            <a href="settings.html">设置</a>
+            <a href="https://github.com/Teak75035/IslandCallerNEXT" target="_blank">项目主页</a>
+        </div>
+    </div>
+    <!-- 仪表盘内容 -->
+    <div class="dashboard">
+        <div class="card">
+            <h2>强制退出IslandCaller NEXT</h2>
+            <p>发送请求关闭本机所有基于Python的脚本运行，来退出ICNEXT的全部组件。</p>
+            <button onclick="confirmExit()">确认退出</button>
+        </div>
+    </div>
+    <!-- 页脚 -->
+    <div class="footer">
+        INTER#LS - IslandCaller NEXT
+    </div>
+    </body>
 </html>
+
+<script>
+    function confirmExit() {
+        if (confirm('确定要退出吗？')) {
+            fetch('http://127.0.0.1:5001/kill', { method: 'GET' })
+                .then(response => {
+                    if (response.ok) {
+                        alert('退出请求已发送。');
+                    } else {
+                        alert('已发送退出请求，您需要自行检查程序是否关闭。');
+                    }
+                })
+                .catch(error => {
+                    console.error('请求失败:', error);
+                    alert('已发送退出请求，您需要自行检查程序是否关闭');
+                });
+        }
+    }
+</script>

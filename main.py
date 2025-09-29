@@ -3,7 +3,7 @@ import subprocess
 
 def run_scripts():
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    scripts = ['hower.py', 'server2.py', 'tray.py']
+    scripts = ['hower.py', 'server2.py']
     processes = []
     for script in scripts:
         script_path = os.path.join(base_dir, script)

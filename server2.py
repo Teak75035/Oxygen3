@@ -442,6 +442,24 @@ def msghelp():
         "content_voice": "这是语音播放的提醒内容"  # 内容语音内容
     })
 
+@app.route('/kill', methods=['GET'])
+def kill():
+    """
+    终止所有 Python 进程。
+    Windows 平台使用 taskkill 命令，其他平台使用 pkill。
+    """
+   
+    if os.name == 'nt':  # Windows 系统
+        os.system("taskkill /F /IM python.exe /T")  # 强制终止所有 Python 进程
+    else:  # 其他系统（如 Linux、macOS）
+        os.system("pkill -f python")  # 终止所有 Python 进程
+    return jsonify({
+            '200': '',
+            'code': '200',
+            'status': 'success',
+            'message': '所有 Python 进程已被终止。'
+        }), 200
+
 # ---- 程序部分 ----
 
 if __name__ == '__main__':
