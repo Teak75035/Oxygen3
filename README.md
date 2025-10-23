@@ -1,6 +1,6 @@
-# IslandCaller NEXT - 随机进化
+# Oxygen3 - 随机进化
 
-ICNEXT 是一款基于 Python 开发的课堂效率工具合集，旨在为高效课堂提供新颖且实用的工具。
+Oxygen3 是一款基于 Python 开发的课堂效率工具合集，旨在为高效课堂提供新颖且实用的工具。
 
 ---
 
@@ -32,13 +32,13 @@ ICNEXT 是一款基于 Python 开发的课堂效率工具合集，旨在为高�
    ```bash
    pip install -r requirements.txt
    ```
-5. **运行程序：** 至此，您已经完成所有步骤，可以通过运行 `main.py` 启动 ICNEXT。
+5. **运行程序：** 至此，您已经完成所有步骤，可以通过运行 `main.py` 启动 Oxygen3。
 
 ---
 
 ## 注意事项
 
-- 确保 ICNEXT 及 ClassIsland 以管理员身份运行，否则可能出现端口注册失败的问题。
+- 确保 Oxygen3 及 ClassIsland 以管理员身份运行，否则可能出现端口注册失败的问题。
 - 确保 NotifyIsland 与程序源码中的端口设置匹配。
 
 ---
@@ -51,4 +51,4 @@ ICNEXT 是一款基于 Python 开发的课堂效率工具合集，旨在为高�
 - [NotifyIsland]
 ---
 
-如果您在使用过程中遇到任何问题，欢迎提交 [Issue](https://github.com/Teak75035/IslandCallerNEXT/issues)。
+如果您在使用过程中遇到任何问题，欢迎提交 [Issue](https://github.com/Teak75035/Oxygen3/issues)。
