@@ -247,8 +247,7 @@ def rna():
             'name': ok_name,
             'seed': seed,
             'pcs': pcs,
-        }
-    })
+        }})
 
 @app.route('/resetnamesbook', methods=['GET'])
 def reset_namesbook():
@@ -372,10 +371,10 @@ def chart():
     plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
     plt.figure(figsize=(10, 6))
     plt.bar(name_in_file, time_in_file, color='skyblue')
-    plt.xlabel('姓名')
-    plt.ylabel('出场次数')
-    plt.title('成员出场次数统计')
-    plt.xticks(rotation=75, ha='right')
+    plt.xlabel('姓名', fontsize=10)  # 调小字体大小
+    plt.ylabel('出场次数', fontsize=10)  # 调小字体大小
+    plt.title('成员出场次数统计', fontsize=12)  # 调小字体大小
+    plt.xticks(rotation=75, ha='right', fontsize=8)  # 调小字体大小
     img_path = 'static/attendance.png'
     os.makedirs('static', exist_ok=True)
     plt.savefig(img_path)
@@ -459,6 +458,20 @@ def kill():
             'status': 'success',
             'message': '所有 Python 进程已被终止。'
         }), 200
+
+@app.route('/', methods=['GET'])
+def index():
+    """
+    根路由，返回欢迎信息。
+    """
+    return send_file('ol.html')
+
+@app.route('/settings', methods=['GET'])
+def settings():
+    """
+    返回设置页面。
+    """
+    return send_file('settings.html')
 
 # ---- 程序部分 ----
 
