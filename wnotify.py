@@ -1,5 +1,6 @@
 # notif_listener.py
 """
+仅供测试
 TEST ONLY DO NOT APPLY FOR YOUR CLASSROOM!
 WinRT-based Notification Listener (polling + XML parsing)
 - Requires: pip install winrt
